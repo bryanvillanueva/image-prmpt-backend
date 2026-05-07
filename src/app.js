@@ -19,13 +19,17 @@ function buildApp() {
 
   app.use(helmet());
 
-  const corsOrigins = [env.FRONTEND_URL].filter(Boolean);
+  const corsOrigins = [env.FRONTEND_URL]
+    .filter(Boolean)
+    .map((u) => u.replace(/\/$/, ''));
+  console.log('[cors] allowed origins:', corsOrigins);
   app.use(
     cors({
       origin(origin, cb) {
         // allow requests with no origin (curl, mobile, server-to-server)
         if (!origin) return cb(null, true);
-        if (corsOrigins.includes(origin)) return cb(null, true);
+        const normalized = origin.replace(/\/$/, '');
+        if (corsOrigins.includes(normalized)) return cb(null, true);
         return cb(new Error(`Origin ${origin} no permitido por CORS`));
       },
       credentials: true,
