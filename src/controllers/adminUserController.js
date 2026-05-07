@@ -61,4 +61,51 @@ async function suspendUser(req, res) {
   return res.json({ data: { ok: true, suspended_user_id: id } });
 }
 
-module.exports = { listUsers, suspendUser };
+async function reactivateUser(req, res) {
+  if (req.user.role_name !== ROLES.ADMIN) {
+    throw Forbidden('Solo administradores pueden reactivar usuarios');
+  }
+  const id = parseInt(req.params.id, 10);
+  if (id === req.user.id) throw BadRequest('No puedes reactivar tu propia cuenta');
+
+  const rows = await query('SELECT id, status FROM users WHERE id = ? LIMIT 1', [id]);
+  if (rows.length === 0) throw NotFound('Usuario no encontrado');
+  if (rows[0].status !== USER_STATUS.SUSPENDED) {
+    throw BadRequest('El usuario no está suspendido');
+  }
+
+  await query('UPDATE users SET status = ? WHERE id = ?', [USER_STATUS.ACTIVE, id]);
+  return res.json({ data: { ok: true, reactivated_user_id: id } });
+}
+
+async function changeRole(req, res) {
+  if (req.user.role_name !== ROLES.ADMIN) {
+    throw Forbidden('Solo administradores pueden cambiar roles');
+  }
+  const id = parseInt(req.params.id, 10);
+  if (id === req.user.id) throw BadRequest('No puedes cambiar tu propio rol');
+
+  const rows = await query('SELECT id FROM users WHERE id = ? LIMIT 1', [id]);
+  if (rows.length === 0) throw NotFound('Usuario no encontrado');
+
+  const roleRows = await query('SELECT id FROM roles WHERE name = ? LIMIT 1', [req.body.role]);
+  if (roleRows.length === 0) throw BadRequest('Rol no válido');
+
+  await query('UPDATE users SET role_id = ? WHERE id = ?', [roleRows[0].id, id]);
+  return res.json({ data: { ok: true, user_id: id, role: req.body.role } });
+}
+
+async function setUploadLimit(req, res) {
+  if (req.user.role_name !== ROLES.ADMIN) {
+    throw Forbidden('Solo administradores pueden cambiar el límite de subidas');
+  }
+  const id = parseInt(req.params.id, 10);
+
+  const rows = await query('SELECT id FROM users WHERE id = ? LIMIT 1', [id]);
+  if (rows.length === 0) throw NotFound('Usuario no encontrado');
+
+  await query('UPDATE users SET upload_limit_per_day = ? WHERE id = ?', [req.body.limit, id]);
+  return res.json({ data: { ok: true, user_id: id, upload_limit_per_day: req.body.limit } });
+}
+
+module.exports = { listUsers, suspendUser, reactivateUser, changeRole, setUploadLimit };

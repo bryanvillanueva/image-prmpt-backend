@@ -8,6 +8,7 @@ const {
   MODERATION_SEVERITY,
   MODERATION_MATCH_TYPE,
   PROMPT_STATUS,
+  ROLES,
 } = require('../config/constants');
 
 const usernameRegex = /^[a-zA-Z0-9_.-]{3,30}$/;
@@ -143,6 +144,14 @@ const adminListPromptsValidators = [
   query('status').optional().isIn(Object.values(PROMPT_STATUS)),
 ];
 
+const adminChangeRoleValidators = [
+  body('role').isIn(Object.values(ROLES)).withMessage(`role debe ser uno de: ${Object.values(ROLES).join(', ')}`),
+];
+
+const adminUploadLimitValidators = [
+  body('limit').isInt({ min: 1, max: 1000 }).toInt().withMessage('limit debe ser un entero entre 1 y 1000'),
+];
+
 module.exports = {
   registerValidators,
   loginValidators,
@@ -154,6 +163,8 @@ module.exports = {
   reportCreateValidators,
   adminRejectValidators,
   adminResolveReportValidators,
+  adminChangeRoleValidators,
+  adminUploadLimitValidators,
   moderationWordValidators,
   paginationValidators,
   publicListValidators,

@@ -1,9 +1,14 @@
 'use strict';
 
 const { query } = require('../config/database');
-const { PROMPT_STATUS, PROMPT_VISIBILITY } = require('../config/constants');
+const { PROMPT_STATUS, PROMPT_VISIBILITY, ROLES } = require('../config/constants');
 const promptService = require('../services/promptService');
 const { NotFound } = require('../utils/httpErrors');
+
+function stripInternalFields(prompt) {
+  const { moderation_score, moderation_reason, rejection_reason, status, ...pub } = prompt;
+  return pub;
+}
 
 async function listPrompts(req, res) {
   const page = req.query.page || 1;
@@ -95,12 +100,12 @@ async function listPrompts(req, res) {
   }
 
   const data = rows.map((r) =>
-    promptService.buildPromptResponse(
+    stripInternalFields(promptService.buildPromptResponse(
       r,
       imagesById[r.id],
       tagsById[r.id] || [],
       promptService.publicAuthor(r)
-    )
+    ))
   );
 
   return res.json({
@@ -126,22 +131,29 @@ async function getPromptBySlug(req, res) {
   );
   const row = rows[0];
   if (!row) throw NotFound('Prompt no encontrado');
-  if (row.status !== PROMPT_STATUS.APPROVED || row.visibility !== PROMPT_VISIBILITY.PUBLIC) {
-    throw NotFound('Prompt no encontrado');
+
+  const isOwner = req.user && req.user.id === row.user_id;
+  const isStaff = req.user && (
+    req.user.role_name === ROLES.ADMIN || req.user.role_name === ROLES.MODERATOR
+  );
+
+  if (!isOwner && !isStaff) {
+    if (row.status !== PROMPT_STATUS.APPROVED || row.visibility !== PROMPT_VISIBILITY.PUBLIC) {
+      throw NotFound('Prompt no encontrado');
+    }
   }
 
-  await promptService.incrementViews(row.id);
+  if (!isOwner && !isStaff) {
+    await promptService.incrementViews(row.id);
+  }
+
   const [image, tags] = await Promise.all([
     promptService.getMainImage(row.id),
     promptService.getTagsForPrompt(row.id),
   ]);
 
-  const response = promptService.buildPromptResponse(
-    row,
-    image,
-    tags,
-    promptService.publicAuthor(row)
-  );
+  const built = promptService.buildPromptResponse(row, image, tags, promptService.publicAuthor(row));
+  const response = isOwner || isStaff ? built : stripInternalFields(built);
   response.category = row.category_id
     ? { id: row.category_id, name: row.category_name, slug: row.category_slug }
     : null;
@@ -196,12 +208,12 @@ async function getUserProfile(req, res) {
   const data = {
     user,
     prompts: prompts.map((p) =>
-      promptService.buildPromptResponse(p, imagesById[p.id], [], {
+      stripInternalFields(promptService.buildPromptResponse(p, imagesById[p.id], [], {
         id: user.id,
         username: user.username,
         name: user.name,
         avatar_url: user.avatar_url,
-      })
+      }))
     ),
   };
   return res.json({ data });

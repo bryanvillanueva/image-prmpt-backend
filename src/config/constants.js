@@ -69,7 +69,7 @@ const ALLOWED_IMAGE_MIME = Object.freeze([
 ]);
 
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
-const DEFAULT_UPLOAD_LIMIT_PER_DAY = 10;
+const DEFAULT_UPLOAD_LIMIT_PER_DAY = 50;
 const COOKIE_NAME = 'auth_token';
 
 module.exports = {

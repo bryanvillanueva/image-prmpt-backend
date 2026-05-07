@@ -16,6 +16,8 @@ const {
   adminListPromptsValidators,
   adminRejectValidators,
   adminResolveReportValidators,
+  adminChangeRoleValidators,
+  adminUploadLimitValidators,
 } = require('../utils/validators');
 
 const router = express.Router();
@@ -50,6 +52,9 @@ router.patch(
 
 router.get('/users', paginationValidators, validate, asyncHandler(userCtrl.listUsers));
 router.patch('/users/:id/suspend', idParam, validate, asyncHandler(userCtrl.suspendUser));
+router.patch('/users/:id/reactivate', idParam, validate, asyncHandler(userCtrl.reactivateUser));
+router.patch('/users/:id/role', idParam, adminChangeRoleValidators, validate, asyncHandler(userCtrl.changeRole));
+router.patch('/users/:id/upload-limit', idParam, adminUploadLimitValidators, validate, asyncHandler(userCtrl.setUploadLimit));
 
 router.use('/moderation-words', moderationWordsRoutes);
 
