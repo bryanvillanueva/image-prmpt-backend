@@ -57,6 +57,31 @@ async function createUser({ name, username, email, password_hash }) {
   return findById(result.insertId);
 }
 
+async function updateProfile(userId, fields) {
+  const allowed = ['name', 'username', 'email', 'bio'];
+  const sets = [];
+  const params = [];
+  for (const key of allowed) {
+    if (Object.prototype.hasOwnProperty.call(fields, key)) {
+      sets.push(`${key} = ?`);
+      params.push(fields[key]);
+    }
+  }
+  if (sets.length === 0) return findById(userId);
+  params.push(userId);
+  await query(`UPDATE users SET ${sets.join(', ')} WHERE id = ?`, params);
+  return findById(userId);
+}
+
+async function updateAvatarUrl(userId, avatarUrl) {
+  await query('UPDATE users SET avatar_url = ? WHERE id = ?', [avatarUrl, userId]);
+  return findById(userId);
+}
+
+async function updatePasswordHash(userId, password_hash) {
+  await query('UPDATE users SET password_hash = ? WHERE id = ?', [password_hash, userId]);
+}
+
 async function countPromptsToday(userId) {
   const rows = await query(
     `SELECT COUNT(*) AS total FROM prompts
@@ -80,6 +105,9 @@ module.exports = {
   findByUsername,
   getRoleIdByName,
   createUser,
+  updateProfile,
+  updateAvatarUrl,
+  updatePasswordHash,
   countPromptsToday,
   getUploadLimit,
 };

@@ -13,6 +13,28 @@ const {
 
 const usernameRegex = /^[a-zA-Z0-9_.-]{3,30}$/;
 
+function strongPassword(value) {
+  if (typeof value !== 'string') {
+    throw new Error('La contraseña es requerida');
+  }
+  if (value.length < 8 || value.length > 128) {
+    throw new Error('La contraseña debe tener entre 8 y 128 caracteres');
+  }
+  if (!/[a-z]/.test(value)) {
+    throw new Error('La contraseña debe incluir al menos una letra minúscula');
+  }
+  if (!/[A-Z]/.test(value)) {
+    throw new Error('La contraseña debe incluir al menos una letra mayúscula');
+  }
+  if (!/\d/.test(value)) {
+    throw new Error('La contraseña debe incluir al menos un dígito');
+  }
+  if (!/[^A-Za-z0-9]/.test(value)) {
+    throw new Error('La contraseña debe incluir al menos un símbolo');
+  }
+  return true;
+}
+
 const registerValidators = [
   body('name').isString().trim().isLength({ min: 1, max: 80 }),
   body('username')
@@ -21,10 +43,12 @@ const registerValidators = [
     .matches(usernameRegex)
     .withMessage('username debe tener 3-30 caracteres alfanuméricos, _, . o -'),
   body('email').isEmail().normalizeEmail(),
-  body('password')
-    .isString()
-    .isLength({ min: 8, max: 128 })
-    .withMessage('La contraseña debe tener entre 8 y 128 caracteres'),
+  body('password').custom(strongPassword),
+];
+
+const updatePasswordValidators = [
+  body('current_password').isString().isLength({ min: 1, max: 128 }),
+  body('new_password').custom(strongPassword),
 ];
 
 const loginValidators = [
@@ -144,6 +168,22 @@ const adminListPromptsValidators = [
   query('status').optional().isIn(Object.values(PROMPT_STATUS)),
 ];
 
+const updateMeValidators = [
+  body('name').optional().isString().trim().isLength({ min: 1, max: 80 }),
+  body('username')
+    .optional()
+    .isString()
+    .trim()
+    .matches(usernameRegex)
+    .withMessage('username debe tener 3-30 caracteres alfanuméricos, _, . o -'),
+  body('email').optional().isEmail().normalizeEmail(),
+  body('bio')
+    .optional({ nullable: true })
+    .isString()
+    .isLength({ max: 500 })
+    .withMessage('bio debe tener máximo 500 caracteres'),
+];
+
 const adminChangeRoleValidators = [
   body('role').isIn(Object.values(ROLES)).withMessage(`role debe ser uno de: ${Object.values(ROLES).join(', ')}`),
 ];
@@ -160,6 +200,8 @@ module.exports = {
   usernameParam,
   promptCreateValidators,
   promptUpdateValidators,
+  updateMeValidators,
+  updatePasswordValidators,
   reportCreateValidators,
   adminRejectValidators,
   adminResolveReportValidators,

@@ -99,14 +99,37 @@ async function listPrompts(req, res) {
     }
   }
 
-  const data = rows.map((r) =>
-    stripInternalFields(promptService.buildPromptResponse(
+  let likedSet = null;
+  let savedSet = null;
+  if (req.user && ids.length > 0) {
+    const placeholders = ids.map(() => '?').join(',');
+    const [likedRows, savedRows] = await Promise.all([
+      query(
+        `SELECT prompt_id FROM prompt_likes
+          WHERE user_id = ? AND prompt_id IN (${placeholders})`,
+        [req.user.id, ...ids]
+      ),
+      query(
+        `SELECT prompt_id FROM saved_prompts
+          WHERE user_id = ? AND prompt_id IN (${placeholders})`,
+        [req.user.id, ...ids]
+      ),
+    ]);
+    likedSet = new Set(likedRows.map((r) => r.prompt_id));
+    savedSet = new Set(savedRows.map((r) => r.prompt_id));
+  }
+
+  const data = rows.map((r) => {
+    const item = stripInternalFields(promptService.buildPromptResponse(
       r,
       imagesById[r.id],
       tagsById[r.id] || [],
       promptService.publicAuthor(r)
-    ))
-  );
+    ));
+    item.is_liked = likedSet ? likedSet.has(r.id) : false;
+    item.is_saved = savedSet ? savedSet.has(r.id) : false;
+    return item;
+  });
 
   return res.json({
     data,
@@ -157,6 +180,25 @@ async function getPromptBySlug(req, res) {
   response.category = row.category_id
     ? { id: row.category_id, name: row.category_name, slug: row.category_slug }
     : null;
+
+  if (req.user) {
+    const [likedRows, savedRows] = await Promise.all([
+      query(
+        'SELECT 1 FROM prompt_likes WHERE user_id = ? AND prompt_id = ? LIMIT 1',
+        [req.user.id, row.id]
+      ),
+      query(
+        'SELECT 1 FROM saved_prompts WHERE user_id = ? AND prompt_id = ? LIMIT 1',
+        [req.user.id, row.id]
+      ),
+    ]);
+    response.is_liked = likedRows.length > 0;
+    response.is_saved = savedRows.length > 0;
+  } else {
+    response.is_liked = false;
+    response.is_saved = false;
+  }
+
   return res.json({ data: response });
 }
 

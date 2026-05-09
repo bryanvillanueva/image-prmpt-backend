@@ -23,6 +23,7 @@ const uploader = multer({
 });
 
 const uploadSingleImage = uploader.single('image');
+const uploadSingleAvatar = uploader.single('avatar');
 
 const MAGIC_BYTES = [
   { mime: 'image/jpeg', sig: [0xff, 0xd8, 0xff] },
@@ -47,4 +48,4 @@ function detectImageMime(buffer) {
   return null;
 }
 
-module.exports = { uploadSingleImage, detectImageMime };
+module.exports = { uploadSingleImage, uploadSingleAvatar, detectImageMime };

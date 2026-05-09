@@ -4,7 +4,7 @@ const express = require('express');
 const asyncHandler = require('../utils/asyncHandler');
 const validate = require('../middlewares/validate');
 const { requireAuth } = require('../middlewares/auth');
-const { loginLimiter, registerLimiter } = require('../middlewares/rateLimit');
+const { loginLimiter, loginEmailLimiter, registerLimiter } = require('../middlewares/rateLimit');
 const {
   registerValidators,
   loginValidators,
@@ -23,6 +23,7 @@ router.post(
 router.post(
   '/login',
   loginLimiter,
+  loginEmailLimiter,
   loginValidators,
   validate,
   asyncHandler(ctrl.login)
