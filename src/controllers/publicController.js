@@ -6,7 +6,8 @@ const promptService = require('../services/promptService');
 const { NotFound } = require('../utils/httpErrors');
 
 function stripInternalFields(prompt) {
-  const { moderation_score, moderation_reason, rejection_reason, status, ...pub } = prompt;
+  const { moderation_score, ...pub } = prompt;
+  if (!pub.status) pub.status = PROMPT_STATUS.APPROVED;
   return pub;
 }
 
