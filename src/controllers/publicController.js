@@ -227,12 +227,19 @@ async function getUserProfile(req, res) {
   const user = userRows[0];
   if (!user) throw NotFound('Usuario no encontrado');
 
-  const prompts = await query(
-    `SELECT p.* FROM prompts p
-      WHERE p.user_id = ? AND p.status = ? AND p.visibility = ?
-      ORDER BY p.created_at DESC LIMIT 50`,
-    [user.id, PROMPT_STATUS.APPROVED, PROMPT_VISIBILITY.PUBLIC]
-  );
+  const [prompts, countRows] = await Promise.all([
+    query(
+      `SELECT p.* FROM prompts p
+        WHERE p.user_id = ? AND p.status = ? AND p.visibility = ?
+        ORDER BY p.created_at DESC LIMIT 50`,
+      [user.id, PROMPT_STATUS.APPROVED, PROMPT_VISIBILITY.PUBLIC]
+    ),
+    query(
+      `SELECT COUNT(*) AS total FROM prompts
+        WHERE user_id = ? AND status = ? AND visibility = ?`,
+      [user.id, PROMPT_STATUS.APPROVED, PROMPT_VISIBILITY.PUBLIC]
+    ),
+  ]);
 
   const ids = prompts.map((p) => p.id);
   const imagesById = {};
@@ -250,6 +257,7 @@ async function getUserProfile(req, res) {
   }
   const data = {
     user,
+    total_prompts: Number(countRows[0].total),
     prompts: prompts.map((p) =>
       stripInternalFields(promptService.buildPromptResponse(p, imagesById[p.id], [], {
         id: user.id,

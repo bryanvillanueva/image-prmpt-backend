@@ -24,7 +24,8 @@ async function listUsers(req, res) {
 
   const rows = await query(
     `SELECT u.id, u.name, u.username, u.email, u.status, u.email_verified,
-            u.upload_limit_per_day, u.trust_level, u.created_at, r.name AS role_name
+            u.upload_limit_per_day, u.trust_level, u.created_at, r.name AS role_name,
+            (SELECT COUNT(*) FROM prompts p WHERE p.user_id = u.id) AS total_prompts
        FROM users u
        JOIN roles r ON r.id = u.role_id
        ${whereSql}

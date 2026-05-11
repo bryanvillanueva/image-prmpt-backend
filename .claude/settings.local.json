@@ -3,7 +3,9 @@
     "allow": [
       "Bash(npm install *)",
       "Bash(node *)",
-      "Bash(curl *)"
+      "Bash(curl *)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\bryan\\\\Documents\\\\image-prompts-backend\" | ForEach-Object { $_.Name })",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\bryan\\\\Documents\\\\image-prompts-backend\\\\src\" -Recurse | ForEach-Object { $_.FullName.Replace\\(\"C:\\\\Users\\\\bryan\\\\Documents\\\\image-prompts-backend\\\\\", \"\"\\) })"
     ]
   }
 }
